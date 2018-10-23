@@ -17,8 +17,8 @@ class Solsys(t.Frame):
         self.init_graphics(*args, **kwargs)
 
     def init_graphics(self, name, \
-                      names, diameters, days_per_revolution, colours, \
-                      spacer=20, diff=1, borderwidth=0):
+                        names, diameters, days_per_revolution, colours, \
+                        spacer=20, diff=1, borderwidth=0):
         self.names = names
         self.diameters = diameters
         self.revolutions = days_per_revolution
@@ -26,18 +26,21 @@ class Solsys(t.Frame):
 
         self.borderwidth = borderwidth
 
-        self.sun_radius = 240 / 4
+        #self.sun_radius = 240 / 4
 
         self.radii = [size / 2 for size in self.diameters]
         self.radii = [size / diff for size in self.radii] # Smaller radii to fit on screen
 
         self.angles_per_day = [360 / rev for rev in self.revolutions]
 
-        self.distances = [self.sun_radius]
-        for num in range(len(self.radii)):
-            cur_rad = self.radii[num]
-            self.distances[num] += spacer + cur_rad
-            self.distances.append( self.distances[num] + cur_rad )
+        #self.distances = [0, self.radii[0] + spacer] # Centre body (zero-distance) and begin padding for next
+        self.distances = [0] # First body (stationary)
+        for index, radius in enumerate(self.radii[1:]): # Skip first body
+            # Add radius of previous body, no -1 needed because it is already offset by 1
+            self.distances.append( self.distances[index] + self.radii[index] )
+            self.distances[index+1] += spacer + radius
+            #self.distances.append( self.distances[index+1] + radius )
+        print(self.distances)
 
         self.master.title(name)
         self.pack(fill=t.BOTH, expand=1)
@@ -65,8 +68,6 @@ class Solsys(t.Frame):
 
     def next_frame(self, day):
         self.canvas.delete("all")
-        self._draw_sun()
-
         #later, use move and coords functions
         for distance, radius, colour, anglepd in zip(self.distances, self.radii, self.colours, self.angles_per_day):
             coords = self.cart_pos(distance, anglepd * day)
@@ -74,23 +75,24 @@ class Solsys(t.Frame):
                                 fill=colour, width=self.borderwidth)
         window.update()
 
-    def _draw_sun(self):
-        self._create_circle(X_MID, Y_MID, self.sun_radius, \
-                            fill="#FDA73E", width=self.borderwidth)
-
 def main():
     years = 360
 
-    names = ["Mercury", "Venus", "Earth", "Mars", \
+    names = ["Sun",\
+                    "Mercury", "Venus", "Earth", "Mars", \
                     "Jupiter", "Saturn", "Uranus", "Neptune", \
                     "Pluto"]
-    diameters = [5, 12, 13, 7, \
+    diameters = [200, \
+                    5, 12, 13, 7, \
                   143, 125, 51, 50, \
                   2.3]
-    revolutions = [87.97, 224.7, 365.26, 1.88 * years, \
+    # 1 to avoid division by 0
+    revolutions = [ 1, \
+                        87.97, 224.7, 365.26, 1.88 * years, \
                         11.86 * years, 29.46 * years, 84.01 * years, 164.79 * years, \
                         248.59 * years]
-    colours = ["#89868C", "#DBD6D2", "#4958D2", "#F7835B", \
+    colours = ["#FDA73E", \
+                    "#89868C", "#DBD6D2", "#4958D2", "#F7835B", \
                     "#8E6549","#DBBF76","#CCF2F3","#5661FF", \
                     "#E0D4C6"]
     test = Solsys(name="Solar System", names=names, diameters=diameters, days_per_revolution=revolutions, colours=colours)
