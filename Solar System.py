@@ -16,16 +16,15 @@ class Solsys(t.Frame):
         super().__init__()
         self.init_graphics(*args, **kwargs)
 
-    def init_graphics(self, name, names, diameters, days_per_revolution, colours):
+    def init_graphics(self, name, \
+                      names, diameters, days_per_revolution, colours, \
+                      spacer=20, diff=1, borderwidth=0):
         self.names = names
         self.diameters = diameters
         self.revolutions = days_per_revolution
         self.colours = colours
 
-        spacer = 20
-        diff = 1
-
-        self.width = 0
+        self.borderwidth = borderwidth
 
         self.sun_radius = 240 / 4
 
@@ -72,12 +71,12 @@ class Solsys(t.Frame):
         for distance, radius, colour, anglepd in zip(self.distances, self.radii, self.colours, self.angles_per_day):
             coords = self.cart_pos(distance, anglepd * day)
             self._create_circle(*coords, radius, \
-                                fill=colour, width=self.width)
+                                fill=colour, width=self.borderwidth)
         window.update()
 
     def _draw_sun(self):
         self._create_circle(X_MID, Y_MID, self.sun_radius, \
-                            fill="#FDA73E", width=self.width)
+                            fill="#FDA73E", width=self.borderwidth)
 
 def main():
     years = 360
