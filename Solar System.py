@@ -7,18 +7,15 @@ win_height = 900
 X_MID = win_width / 2
 Y_MID = win_height / 2
 
-window = t.Tk()
-#window.attributes("-fullscreen", True)
-window.geometry(f"{win_width}x{win_height}")
-
 class Solsys(t.Frame):
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.init_graphics(*args, **kwargs)
 
-    def init_graphics(self, name, \
+    def init_graphics(self, widget, name, \
                         names, diameters, days_per_revolution, colours, \
                         spacer=20, diff=1, borderwidth=0):
+        self.widget = widget
         self.names = names
         self.diameters = diameters
         self.revolutions = days_per_revolution
@@ -26,21 +23,16 @@ class Solsys(t.Frame):
 
         self.borderwidth = borderwidth
 
-        #self.sun_radius = 240 / 4
-
         self.radii = [size / 2 for size in self.diameters]
         self.radii = [size / diff for size in self.radii] # Smaller radii to fit on screen
 
         self.angles_per_day = [360 / rev for rev in self.revolutions]
 
-        #self.distances = [0, self.radii[0] + spacer] # Centre body (zero-distance) and begin padding for next
         self.distances = [0] # First body (stationary)
         for index, radius in enumerate(self.radii[1:]): # Skip first body
-            # Add radius of previous body, no -1 needed because it is already offset by 1
             self.distances.append( self.distances[index] + self.radii[index] )
             self.distances[index+1] += spacer + radius
-            #self.distances.append( self.distances[index+1] + radius )
-        print(self.distances)
+
 
         self.master.title(name)
         self.pack(fill=t.BOTH, expand=1)
@@ -50,11 +42,10 @@ class Solsys(t.Frame):
 
         self.canvas.pack(fill=t.BOTH, expand=1)
 
-        print(self.cart_pos(math.sqrt(2), 45))
-        day = 0
+        self.day = 0
         while True:
-            self.next_frame(day)
-            day += 1
+            next(self)
+            self.day += 1
             time.sleep(.001)
 
     def _create_circle(self, x, y, r, **kwargs):
@@ -66,16 +57,20 @@ class Solsys(t.Frame):
         y = rho * math.sin( math.radians(phi) ) + Y_MID
         return x, y
 
-    def next_frame(self, day):
+    def __next__(self):
         self.canvas.delete("all")
         #later, use move and coords functions
         for distance, radius, colour, anglepd in zip(self.distances, self.radii, self.colours, self.angles_per_day):
-            coords = self.cart_pos(distance, anglepd * day)
+            coords = self.cart_pos(distance, anglepd * self.day)
             self._create_circle(*coords, radius, \
                                 fill=colour, width=self.borderwidth)
-        window.update()
+        self.widget.update()
 
 def main():
+    window = t.Tk()
+    #window.attributes("-fullscreen", True)
+    window.geometry(f"{win_width}x{win_height}")
+
     years = 360
 
     names = ["Sun",\
@@ -95,7 +90,8 @@ def main():
                     "#89868C", "#DBD6D2", "#4958D2", "#F7835B", \
                     "#8E6549","#DBBF76","#CCF2F3","#5661FF", \
                     "#E0D4C6"]
-    test = Solsys(name="Solar System", names=names, diameters=diameters, days_per_revolution=revolutions, colours=colours)
+    test = Solsys(window, name="Solar System", \
+                    names=names, diameters=diameters, days_per_revolution=revolutions, colours=colours)
     #window.mainloop()
 
 main()
