@@ -7,7 +7,33 @@ win_height = 900
 X_MID = win_width / 2
 Y_MID = win_height / 2
 
-class Solsys(t.Frame):
+def cart_pos(rho, phi, x, y):
+    # These take radians
+    x = rho * math.cos( math.radians(phi) ) + x
+    y = rho * math.sin( math.radians(phi) ) + y
+    return x, y
+
+def set_pos(canvas, body, x, y):
+    #canvas.move(obj, cur_x-targ_x, cur_y-targ_y)
+    #canvas.move(body, targ_x-cur_x, targ_y-cur_y)
+    #self.canvas.coords(body)[1]
+    canvas.move(body, x - canvas.coords(body)[0], y - canvas.coords(body)[1])
+
+class Planet(t.Frame):
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self._init_graphics(*args, **kwargs)
+
+    def _init_graphics(self):
+        pass
+
+    def set_coords(self, x, y):
+        pass
+
+    def _create_circle(self, x, y, r, **kwargs):
+        return self.canvas.create_oval(x-r, y-r, x+r, y+r, **kwargs)
+
+class OrbSys(Planet):
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.init_graphics(*args, **kwargs)
@@ -42,31 +68,29 @@ class Solsys(t.Frame):
 
         self.canvas.pack(fill=t.BOTH, expand=1)
 
+
+
+        self.bodies = []
+
+
         self.day = 0
-        while True:
-            next(self)
-            self.day += 1
-            time.sleep(.001)
-
-    def _create_circle(self, x, y, r, **kwargs):
-        return self.canvas.create_oval(x-r, y-r, x+r, y+r, **kwargs)
-
-    def cart_pos(self, rho, phi):
-        # These take radians
-        x = rho * math.cos( math.radians(phi) ) + X_MID
-        y = rho * math.sin( math.radians(phi) ) + Y_MID
-        return x, y
-
-    def __next__(self):
-        self.canvas.delete("all")
-        #later, use move and coords functions
         for distance, radius, colour, anglepd in zip(self.distances, self.radii, self.colours, self.angles_per_day):
-            coords = self.cart_pos(distance, anglepd * self.day)
-            self._create_circle(*coords, radius, \
+            coords = cart_pos(distance, anglepd * self.day, X_MID, Y_MID)
+            foo = self._create_circle(*coords, radius, \
                                 fill=colour, width=self.borderwidth)
+            self.bodies.append(foo)
         self.widget.update()
 
+    def __next__(self):
+        for body, distance, anglepd in zip(self.bodies, self.distances, self.angles_per_day):
+            coords = cart_pos(distance, anglepd * self.day, X_MID, Y_MID)
+            #set_pos(self.canvas, body, self.canvas.coords(body)[0], self.canvas.coords(body)[1], coords[0], coords[1])
+            set_pos(self.canvas, body, *coords)
+        self.widget.update()
+        self.day += 1
+
 def main():
+    # name diameter rev colour
     window = t.Tk()
     #window.attributes("-fullscreen", True)
     window.geometry(f"{win_width}x{win_height}")
@@ -90,8 +114,15 @@ def main():
                     "#89868C", "#DBD6D2", "#4958D2", "#F7835B", \
                     "#8E6549","#DBBF76","#CCF2F3","#5661FF", \
                     "#E0D4C6"]
-    test = Solsys(window, name="Solar System", \
+
+    zipped = [i for i in zip(names, diameters, revolutions, colours)]
+    print(zipped)
+
+    test = OrbSys(window, name="Solar System", \
                     names=names, diameters=diameters, days_per_revolution=revolutions, colours=colours)
+    while True:
+            next(test)
+            time.sleep(.01)
     #window.mainloop()
 
 main()
