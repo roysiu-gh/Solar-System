@@ -36,14 +36,7 @@ class Body(tk.Frame):
         self.displacement = displacement
         self.apd = 360 / self.revolutions # Angles per day
 
-        print(self.name)
-        print(self.radius)
-        print(self.revolutions)
-        print(self.colour)
-        print(self.displacement)
-        print(self.apd)
-        print()
-
+        # Point from which the planets orbit
         self.centre_x = centre_x
         self.centre_y = centre_y
 
@@ -67,14 +60,11 @@ class Body(tk.Frame):
             return args[1:], kwargs # Ignore centre body, also screw it, I'm returning
 
     def _init_graphics(self):
-        #angle = body[self.apd_ind] * self.day
         angle = self.apd * self.day
-        x, y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)[:2]
+        x, y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)
         r = self.radius
         self.tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
                                         fill=self.colour, width=self.border_width)
-        print(self.tk_id)
-        print()
 
     def __next__(self):
         angle = self.apd * self.day
@@ -113,29 +103,8 @@ class OrbSys(Body):
             to_append = Body(self.window, self.centre_x, self.centre_y, body, name=body[self.nam_ind], displacement=displacement, canvas=self.canvas)
             self.body_objs.append(to_append)
 
-        #self.init_graphics()
-
-    def init_graphics(self):
-        #for displacement, body in zip(self.displacements, self.bodies):
-        #    angle = body[self.apd_ind] * self.day
-        #    x, y = cart_pos(displacement, angle, self.centre_x, self.centre_y)[:2] #need [:2]?
-        #    r = body[self.rad_ind]
-        #    tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
-        #                                    fill=body[self.col_ind], width=self.border_width)
-        #    body.append(tk_id)
-        self.window.update()
-
-        #for i in self.bodies:
-        #    print(i)
-
     def __next__(self):
         super().__next__()
-        #for displacement, body in zip(self.displacements, self.bodies):
-        #    angle = body[self.apd_ind] * self.day
-        #    x, y = cart_pos(displacement, angle, self.x, self.y)
-        #    r = body[self.rad_ind]
-        #    bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
-        #    self.canvas.coords(body[self.tkid_ind], bounds_coords)
         for body in self.body_objs:
             body.x = self.centre_x
             body.y = self.centre_y
