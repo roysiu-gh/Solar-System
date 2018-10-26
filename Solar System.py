@@ -25,7 +25,7 @@ class Body(tk.Frame):
 
     day = 0 # Increments in __next__()
 
-    def __init__(self, window, centre_x, centre_y, *args, name, spacer=20, diff=1, border_width=0, displacement=0, super_call=False, canvas=None, **kwargs):
+    def __init__(self, window, centre_x, centre_y, *args, spacer=20, diff=1, border_width=0, displacement=0, super_call=False, canvas=None, **kwargs):
         super().__init__()
 
         centre_body = args[0]
@@ -39,8 +39,6 @@ class Body(tk.Frame):
         # Point from which the planets orbit
         self.centre_x = centre_x
         self.centre_y = centre_y
-
-        self.name = name
 
         self.spacer = spacer
         self.diff = diff
@@ -91,7 +89,6 @@ class OrbSys(Body):
             self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
             self.displacements[index + 1] += self.spacer + body[self.rad_ind]
 
-        self.master.title(self.name)
         self.pack(fill=tk.BOTH, expand=1)
 
         self.canvas.config(bg='#000000')
@@ -114,6 +111,7 @@ class OrbSys(Body):
 def main():
     # name radius rev colour angles_per_day tkinter_canvas_id
     window = tk.Tk()
+    window.title("Solar System")
     #window.attributes("-fullscreen", True)
     window.geometry(f"{win_width}x{win_height}")
 
@@ -142,10 +140,10 @@ def main():
     zipped = [i for i in zip(names, radii, revolutions, colours)]
     #print(zipped)
 
-    test = OrbSys(window, X_MID, Y_MID, *zipped, name="Solar System")
+    SolarSystem = OrbSys(window, X_MID, Y_MID, *zipped)
     time.sleep(1)
     while True:
-            next(test)
+            next(SolarSystem)
             time.sleep(.01)
     #window.mainloop()
 
