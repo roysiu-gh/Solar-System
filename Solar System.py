@@ -26,15 +26,40 @@ class Body(tk.Frame):
     day = 0 # Increments in __next__()
 
     def __init__(self, window, centre_x, centre_y, *args, spacer=20, diff=1, border_width=0, displacement=0, super_call=False, canvas=None, **kwargs):
+        """
+
+        :param window:
+        :type window:
+        :param centre_x:
+        :type centre_x:
+        :param centre_y:
+        :type centre_y:
+        :param args:
+        :type args:
+        :param spacer:
+        :type spacer:
+        :param diff:
+        :type diff:
+        :param border_width:
+        :type border_width:
+        :param displacement:
+        :type displacement:
+        :param super_call:
+        :type super_call:
+        :param canvas:
+        :type canvas:
+        :param kwargs:
+        :type kwargs:
+        """
         super().__init__()
 
         centre_body = args[0]
         self.name = centre_body[0]
         self.radius = centre_body[1]
-        self.revolutions = centre_body[2]
+        self.orbital_period = centre_body[2]
         self.colour = centre_body[3]
         self.displacement = displacement
-        self.apd = 360 / self.revolutions # Angles per day
+        self.apd = 360 / self.orbital_period # Angles per day
 
         # Point from which the planets orbit
         self.centre_x = centre_x
@@ -51,6 +76,8 @@ class Body(tk.Frame):
             self.canvas = tk.Canvas(self)
         else:
             self.canvas = canvas
+            self.canvas.config(bg='#000000') # Paramaterise?
+            self.canvas.pack(fill=tk.BOTH, expand=1)
 
         self._init_graphics()
 
@@ -76,24 +103,14 @@ class Body(tk.Frame):
 
 class OrbSys(Body):
     def __init__(self, *args, **kwargs):
-        args, kwargs = super().__init__(*args, **kwargs, super_call=True)
+        args, kwargs = super().__init__(*args, **kwargs, super_call=True) # Find a better way to do this
 
         self.bodies = [list(arg) for arg in args]
-
-        for body in self.bodies:
-            angles_per_day = 360 / body[self.rev_ind]
-            body.append(angles_per_day)
 
         self.displacements = [self.radius + self.spacer] # Clear (don't collide wih) centre body
         for index, body in enumerate(self.bodies[1:]):  # Skip first body
             self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
             self.displacements[index + 1] += self.spacer + body[self.rad_ind]
-
-        self.pack(fill=tk.BOTH, expand=1)
-
-        self.canvas.config(bg='#000000')
-
-        self.canvas.pack(fill=tk.BOTH, expand=1)
 
         self.body_objs = []
         for body, displacement in zip(self.bodies, self.displacements):
@@ -127,25 +144,29 @@ def main():
                   2.3]
     radii = [x/2 for x in diameters]
     # 1 to avoid division by 0
-    revolutions = [ 1, \
+    orbital_period = [ 1, \
                         87.97, 224.7, 365.26, 1.88 * years, \
                         11.86 * years, 29.46 * years, 84.01 * years, 164.79 * years, \
                         248.59 * years]
-    #revolutions = [360]*10
     colours = ["#FDA73E", \
                     "#89868C", "#DBD6D2", "#4958D2", "#F7835B", \
                     "#8E6549","#DBBF76","#CCF2F3","#5661FF", \
                     "#E0D4C6"]
 
-    zipped = [i for i in zip(names, radii, revolutions, colours)]
-    #print(zipped)
+    zipped = [i for i in zip(names, radii, orbital_period, colours)]
 
-    SolarSystem = OrbSys(window, X_MID, Y_MID, *zipped)
+    #earthsyslis = [zipped.pop(3)]
+    #earthsyslis.append(("Moon", 1.625, 27, "#B7B1AA"))
+    #print(earthsyslis)
+    #earthsys = OrbSys(window, 0, 0, *earthsyslis)
+    #zipped.insert(3, earthsys)
+
+    solsys = OrbSys(window, X_MID, Y_MID, *zipped)
+    solsys.pack(fill=tk.BOTH, expand=1)
     time.sleep(1)
     while True:
-            next(SolarSystem)
+            next(solsys)
             time.sleep(.01)
     #window.mainloop()
 
 main()
-# fix private objects
