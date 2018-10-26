@@ -106,8 +106,8 @@ class OrbSys(Body):
     def __next__(self):
         super().__next__()
         for body in self.body_objs:
-            body.x = self.centre_x
-            body.y = self.centre_y
+            body.centre_x = self.x
+            body.centre_y = self.y
             next(body)
         self.window.update()
 
