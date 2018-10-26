@@ -1,4 +1,4 @@
-import tkinter as t
+import tkinter as tk
 import time, math
 
 win_width = 1400
@@ -13,7 +13,7 @@ def cart_pos(rho, phi, x, y):
     y = rho * math.sin( math.radians(phi) ) + y
     return x, y
 
-class Body(t.Frame):
+class Body(tk.Frame):
 
     nam_ind = 0
     rad_ind = 1
@@ -25,12 +25,27 @@ class Body(t.Frame):
 
     day = 0 # Increments in __next__()
 
-    def __init__(self, window, x, y, name, *args, spacer=20, diff=1, border_width=0, **kwargs):
+    def __init__(self, window, centre_x, centre_y, *args, name, spacer=20, diff=1, border_width=0, displacement=0, super_call=False, canvas=None, **kwargs):
         super().__init__()
 
-        self.x = x
-        self.y = y
-        self.coords = (x, y)
+        centre_body = args[0]
+        self.name = centre_body[0]
+        self.radius = centre_body[1]
+        self.revolutions = centre_body[2]
+        self.colour = centre_body[3]
+        self.displacement = displacement
+        self.apd = 360 / self.revolutions # Angles per day
+
+        print(self.name)
+        print(self.radius)
+        print(self.revolutions)
+        print(self.colour)
+        print(self.displacement)
+        print(self.apd)
+        print()
+
+        self.centre_x = centre_x
+        self.centre_y = centre_y
 
         self.name = name
 
@@ -40,51 +55,74 @@ class Body(t.Frame):
         self.window = window
         self.border_width = border_width
 
-        self.canvas = t.Canvas(self)
+        # Use same canvas if exists
+        if canvas == None:
+            self.canvas = tk.Canvas(self)
+        else:
+            self.canvas = canvas
 
-        #self._init_graphics(*args, **kwargs)
-        return args, kwargs
+        self._init_graphics()
 
-    def _init_graphics(self, *args, **kwargs):
-        pass
+        if super_call:
+            return args[1:], kwargs # Ignore centre body, also screw it, I'm returning
+
+    def _init_graphics(self):
+        #angle = body[self.apd_ind] * self.day
+        angle = self.apd * self.day
+        x, y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)[:2]
+        r = self.radius
+        self.tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
+                                        fill=self.colour, width=self.border_width)
+        print(self.tk_id)
+        print()
 
     def __next__(self):
+        angle = self.apd * self.day
+        self.x, self.y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)
+        x, y = self.x, self.y
+        r = self.radius
+        bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
+        self.canvas.coords(self.tk_id, bounds_coords)
+        self.window.update()
         self.day += 1
 
 class OrbSys(Body):
     def __init__(self, *args, **kwargs):
-        args, kwargs = super().__init__(*args, **kwargs)
+        args, kwargs = super().__init__(*args, **kwargs, super_call=True)
 
         self.bodies = [list(arg) for arg in args]
 
         for body in self.bodies:
-            body[self.rad_ind] # Smaller radii to fit on screen
-
             angles_per_day = 360 / body[self.rev_ind]
             body.append(angles_per_day)
 
-        self.displacements = [0] # First body (zero displacement)
-        for index, body in enumerate(self.bodies[1:]): # Skip first body
+        self.displacements = [self.radius + self.spacer] # Clear (don't collide wih) centre body
+        for index, body in enumerate(self.bodies[1:]):  # Skip first body
             self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
             self.displacements[index + 1] += self.spacer + body[self.rad_ind]
 
         self.master.title(self.name)
-        self.pack(fill=t.BOTH, expand=1)
+        self.pack(fill=tk.BOTH, expand=1)
 
         self.canvas.config(bg='#000000')
 
-        self.canvas.pack(fill=t.BOTH, expand=1)
+        self.canvas.pack(fill=tk.BOTH, expand=1)
 
-        self.init_graphics()
+        self.body_objs = []
+        for body, displacement in zip(self.bodies, self.displacements):
+            to_append = Body(self.window, self.centre_x, self.centre_y, body, name=body[self.nam_ind], displacement=displacement, canvas=self.canvas)
+            self.body_objs.append(to_append)
+
+        #self.init_graphics()
 
     def init_graphics(self):
-        for displacement, body in zip(self.displacements, self.bodies):
-            angle = body[self.apd_ind] * self.day
-            x, y = cart_pos(displacement, angle, self.x, self.y)[:2]
-            r = body[self.rad_ind]
-            tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
-                                            fill=body[self.col_ind], width=self.border_width)
-            body.append(tk_id)
+        #for displacement, body in zip(self.displacements, self.bodies):
+        #    angle = body[self.apd_ind] * self.day
+        #    x, y = cart_pos(displacement, angle, self.centre_x, self.centre_y)[:2] #need [:2]?
+        #    r = body[self.rad_ind]
+        #    tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
+        #                                    fill=body[self.col_ind], width=self.border_width)
+        #    body.append(tk_id)
         self.window.update()
 
         #for i in self.bodies:
@@ -92,18 +130,21 @@ class OrbSys(Body):
 
     def __next__(self):
         super().__next__()
-        #self.canvas.delete("all")
-        for displacement, body in zip(self.displacements, self.bodies):
-            angle = body[self.apd_ind] * self.day
-            x, y = cart_pos(displacement, angle, self.x, self.y)
-            r = body[self.rad_ind]
-            bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
-            self.canvas.coords(body[self.tkid_ind], bounds_coords)
+        #for displacement, body in zip(self.displacements, self.bodies):
+        #    angle = body[self.apd_ind] * self.day
+        #    x, y = cart_pos(displacement, angle, self.x, self.y)
+        #    r = body[self.rad_ind]
+        #    bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
+        #    self.canvas.coords(body[self.tkid_ind], bounds_coords)
+        for body in self.body_objs:
+            body.x = self.centre_x
+            body.y = self.centre_y
+            next(body)
         self.window.update()
 
 def main():
     # name radius rev colour angles_per_day tkinter_canvas_id
-    window = t.Tk()
+    window = tk.Tk()
     #window.attributes("-fullscreen", True)
     window.geometry(f"{win_width}x{win_height}")
 
@@ -132,8 +173,7 @@ def main():
     zipped = [i for i in zip(names, radii, revolutions, colours)]
     #print(zipped)
 
-    test = OrbSys(window, X_MID, Y_MID, "Solar System", \
-                    *zipped)
+    test = OrbSys(window, X_MID, Y_MID, *zipped, name="Solar System")
     time.sleep(1)
     while True:
             next(test)
