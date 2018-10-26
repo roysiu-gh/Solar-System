@@ -30,6 +30,7 @@ class Body(t.Frame):
 
         self.x = x
         self.y = y
+        self.coords = (x, y)
 
         self.name = name
 
@@ -46,9 +47,6 @@ class Body(t.Frame):
 
     def _init_graphics(self, *args, **kwargs):
         pass
-
-    def _create_circle(self, x, y, r, **kwargs):
-        return self.canvas.create_oval(x-r, y-r, x+r, y+r, **kwargs)
 
     def __next__(self):
         self.day += 1
@@ -70,8 +68,6 @@ class OrbSys(Body):
             self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
             self.displacements[index + 1] += self.spacer + body[self.rad_ind]
 
-        print(self.displacements)
-
         self.master.title(self.name)
         self.pack(fill=t.BOTH, expand=1)
 
@@ -84,9 +80,10 @@ class OrbSys(Body):
     def init_graphics(self):
         for displacement, body in zip(self.displacements, self.bodies):
             angle = body[self.apd_ind] * self.day
-            coords = cart_pos(displacement, angle, self.x, self.y)
-            tk_id = self._create_circle(*coords, body[self.rad_ind], \
-                                        fill=body[self.col_ind], width=self.border_width)
+            x, y = cart_pos(displacement, angle, self.x, self.y)[:2]
+            r = body[self.rad_ind]
+            tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
+                                            fill=body[self.col_ind], width=self.border_width)
             body.append(tk_id)
         self.window.update()
 
@@ -100,7 +97,7 @@ class OrbSys(Body):
             angle = body[self.apd_ind] * self.day
             x, y = cart_pos(displacement, angle, self.x, self.y)
             r = body[self.rad_ind]
-            bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) frquires outer bounds for circles (ovals)
+            bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
             self.canvas.coords(body[self.tkid_ind], bounds_coords)
         self.window.update()
 
