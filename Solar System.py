@@ -50,12 +50,6 @@ class Body(t.Frame):
     def _create_circle(self, x, y, r, **kwargs):
         return self.canvas.create_oval(x-r, y-r, x+r, y+r, **kwargs)
 
-    def set_pos(self, tkid, x, y):
-        x_old, y_old = self.canvas.coords(tkid)[:2]
-        x_offset = x - x_old
-        y_offset = y - y_old
-        self.canvas.move(tkid, x_offset, y_offset)
-
     def __next__(self):
         self.day += 1
 
