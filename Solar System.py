@@ -1,11 +1,11 @@
 import tkinter as tk
 import time, math
 
-win_width = 1400
-win_height = 900
+WIN_WIDTH = 1400
+WIN_HEIGHT = 900
 
-X_MID = win_width / 2
-Y_MID = win_height / 2
+X_MID = WIN_WIDTH / 2
+Y_MID = WIN_HEIGHT / 2
 
 def cart_pos(rho, phi, x, y):
     # Note: these take radians
@@ -27,41 +27,46 @@ class Body(tk.Frame):
 
     def __init__(self, window, centre_x, centre_y, *args, spacer=20, diff=1, border_width=0, displacement=0, super_call=False, canvas=None, **kwargs):
         """
+        Initialise instance variables
+        Create canvas if not already created/passed
+        Call _init_graphics()
+        Pass extra arguments to outer daughter (instance) initialisation
 
-        :param window:
-        :type window:
-        :param centre_x:
-        :type centre_x:
-        :param centre_y:
-        :type centre_y:
-        :param args:
-        :type args:
-        :param spacer:
-        :type spacer:
-        :param diff:
-        :type diff:
-        :param border_width:
-        :type border_width:
-        :param displacement:
-        :type displacement:
-        :param super_call:
-        :type super_call:
-        :param canvas:
-        :type canvas:
-        :param kwargs:
-        :type kwargs:
+        :param window: Tkinter window
+        :type window: tkinter.Tk()
+        :param centre_x: x co-ordinate of (current) orbit centre
+        :type centre_x: float
+        :param centre_y: y co-ordinate of (current) orbit centre
+        :type centre_y: float
+        :param args: Data for bodies: tuples of Name, Radius, Orbital period, and Colour
+        :type args: list( tuples(str, float, float, str) )
+        :param spacer: Closest distance between circumference of bodies
+        :type spacer: float
+        :param diff: Divisor to reduce radius by (use if more space is needed)
+        :type diff: float
+        :param border_width: Border width of singular bodies
+        :type border_width: float
+        :param displacement: displacement from orbital centre to body centre
+        :type displacement: float
+        :param super_call: Only return leftover arguments if calling super().__init__() from a daughter class
+        :type super_call: bool
+        :param canvas: Canvas on which to draw items
+        :type canvas: tkinter.Canvas(tkinter.Frame)
+        :param kwargs: Extra keyword arguments to pass to lower classes / decorators etc.
+        :type kwargs: dict
         """
         super().__init__()
 
-        centre_body = args[0]
-        self.name = centre_body[0]
-        self.radius = centre_body[1]
-        self.orbital_period = centre_body[2]
-        self.colour = centre_body[3]
+        self.centre_body = args[0]
+        self.name = self.centre_body[0]
+        self.radius = self.centre_body[1]
+        self.radius /= diff # Reduce size if needed
+        self.orbital_period = self.centre_body[2]
+        self.colour = self.centre_body[3]
         self.displacement = displacement
         self.apd = 360 / self.orbital_period # Angles per day
 
-        # Point from which the planets orbit
+        # Point from which the bodies orbit
         self.centre_x = centre_x
         self.centre_y = centre_y
 
@@ -76,13 +81,14 @@ class Body(tk.Frame):
             self.canvas = tk.Canvas(self)
         else:
             self.canvas = canvas
-            self.canvas.config(bg='#000000') # Paramaterise?
-            self.canvas.pack(fill=tk.BOTH, expand=1)
+            #self.canvas.config(bg='#000000') # Paramaterise?
+            #self.canvas.pack(fill=tk.BOTH, expand=1)
 
         self._init_graphics()
 
         if super_call:
-            return args[1:], kwargs # Ignore centre body, also screw it, I'm returning
+            # Ignore centre body, also screw it, I'm returning
+            return args[1:], kwargs
 
     def _init_graphics(self):
         angle = self.apd * self.day
@@ -98,31 +104,49 @@ class Body(tk.Frame):
         r = self.radius
         bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
         self.canvas.coords(self.tk_id, bounds_coords)
+        #if self.name == "Moon": print(self.tk_id)
+        print(self.name)
+        print(self.tk_id)
         self.window.update()
         self.day += 1
+
+    def __iter__(self):
+        for item in self.centre_body:
+            yield item
 
 class OrbSys(Body):
     def __init__(self, *args, **kwargs):
         args, kwargs = super().__init__(*args, **kwargs, super_call=True) # Find a better way to do this
 
-        self.bodies = [list(arg) for arg in args]
+        self.bodies = [list(arg) for arg in args] #dasffffffff
 
         self.displacements = [self.radius + self.spacer] # Clear (don't collide wih) centre body
         for index, body in enumerate(self.bodies[1:]):  # Skip first body
             self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
             self.displacements[index + 1] += self.spacer + body[self.rad_ind]
 
+        #self.radius = sum(self.displacements) #Do this for nested orbital syss
+
         self.body_objs = []
-        for body, displacement in zip(self.bodies, self.displacements):
-            to_append = Body(self.window, self.centre_x, self.centre_y, body, name=body[self.nam_ind], displacement=displacement, canvas=self.canvas)
+        for body, displacement in zip(args, self.displacements):
+            print(body)
+            if isinstance(body, OrbSys):
+                print(22222222222222222222)
+                #body.canvas = self.canvas #Bodge .........fsdfs.gsd.g.sd.g.sdfg
+                to_append = body
+            else:
+                to_append = Body(self.window, self.centre_x, self.centre_y, body, name=body[self.nam_ind], displacement=displacement, canvas=self.canvas)
             self.body_objs.append(to_append)
+            print()
 
     def __next__(self):
         super().__next__()
         for body in self.body_objs:
             body.centre_x = self.x
             body.centre_y = self.y
+            #print(body.name)
             next(body)
+        print()
         self.window.update()
 
 def main():
@@ -130,7 +154,11 @@ def main():
     window = tk.Tk()
     window.title("Solar System")
     #window.attributes("-fullscreen", True)
-    window.geometry(f"{win_width}x{win_height}")
+    window.geometry(f"{WIN_WIDTH}x{WIN_HEIGHT}")
+
+    canvas = tk.Canvas(window, width=WIN_WIDTH, height=WIN_HEIGHT)
+    canvas.config(bg='#000000')  # Paramaterise?
+    canvas.pack(fill=tk.BOTH, expand=1)
 
     years = 360
 
@@ -157,16 +185,21 @@ def main():
 
     #earthsyslis = [zipped.pop(3)]
     #earthsyslis.append(("Moon", 1.625, 27, "#B7B1AA"))
-    #print(earthsyslis)
-    #earthsys = OrbSys(window, 0, 0, *earthsyslis)
+    ## Caution diff earthsys earthsyslis
+    #earthsys = OrbSys(window, 0, 0, *earthsyslis, spacer=10, canvas=canvas)
     #zipped.insert(3, earthsys)
+    #print(type(earthsys))
 
-    solsys = OrbSys(window, X_MID, Y_MID, *zipped)
+    #for i in zipped:
+    #    print(i)
+    #print()
+
+    solsys = OrbSys(window, X_MID, Y_MID, *zipped, canvas=canvas)#, spacer=10)
     solsys.pack(fill=tk.BOTH, expand=1)
     time.sleep(1)
     while True:
-            next(solsys)
-            time.sleep(.01)
+        next(solsys)
+        time.sleep(.1)
     #window.mainloop()
 
 main()
