@@ -1,3 +1,4 @@
+
 import tkinter as tk
 import time, math
 
@@ -7,6 +8,13 @@ WIN_HEIGHT = 900
 X_MID = WIN_WIDTH / 2
 Y_MID = WIN_HEIGHT / 2
 
+#Testing
+WIN_WIDTH = 850
+WIN_HEIGHT = 400
+
+X_MID = 200
+Y_MID = 200
+
 def cart_pos(rho, phi, x_offset, y_offset):
     # Note: these take radians
     x = rho * math.cos( math.radians(phi) ) + x_offset
@@ -15,6 +23,7 @@ def cart_pos(rho, phi, x_offset, y_offset):
 
 class Body(tk.Frame):
 
+    # Class-wide index constants
     nam_ind = 0
     rad_ind = 1
     per_ind = 2
@@ -68,6 +77,8 @@ class Body(tk.Frame):
         self.displacement = displacement
 
         self.radius /= diff  # Reduce radius if needed
+        #if self.orbital_period == None:
+        #    self.orbital_period =
         self.apd = 360 / self.orbital_period  # Angles per day
 
         # Point from which the bodies orbit
@@ -86,18 +97,26 @@ class Body(tk.Frame):
         angle = self.apd * self.day
         x, y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)
         r = self.radius
-        self.tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, \
-                                        fill=self.colour, width=self.border_width)
+        self.tk_id = self.canvas.create_oval(x - r, y - r, x + r, y + r, fill=self.colour, width=self.border_width)
 
     def __next__(self):
         angle = self.apd * self.day
+        if self.name == "Earth Sys":
+            print("> heyeheyhey >>", self.apd)
         self.x, self.y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)
         x, y = self.x, self.y
         r = self.radius
         bounds_coords = (x-r, y-r, x+r, y+r) # Canvas.coords() (to move) requires outer bounds for circles (ovals)
+        #print(self.name)
         self.canvas.coords(self.tk_id, bounds_coords)
         self.window.update()
         self.day += 1
+        if self.name == "Earth Sys":
+            print(self.centre_x, self.centre_y)
+            print(x, y)
+            print(self.displacement, angle, self.centre_x, self.centre_y)
+            print(self.apd)
+            print()
 
     def __iter__(self):
         for i in self.data:
@@ -110,14 +129,35 @@ class OrbSys(Body):
     def __init__(self, bodies, *args, spacer=20, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.bodies = bodies
+        self.bodies = [tuple(body) for body in bodies] # Convert nested OrbSys to tuples
 
         self.displacements = [0]#self.radius + spacer] # Clear (don't collide wih) centre body
+
         for index, body in enumerate(self.bodies[1:]):  # Skip first body
+            #if body[self.nam_ind] == "Earth Sys":
+            #    print("> Body >>", body)
+            #    print("> Bodytype >>", type(body))
+            #    for i in body: print("- ", i)
+            #    print("> radind >>", self.rad_ind)
+
             self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
-            self.displacements[index + 1] += spacer + body[self.rad_ind]
+
+            #if body[self.nam_ind] == "Earth Sys":
+            #    print("> curdisp >>", self.displacements[index + 1])
+            #    print("> HEY LOOK LISTEN RADIUS >>", body[self.rad_ind])
+            #    print()
+
+            self.displacements[index + 1] += spacer + body[self.rad_ind] ###
 
         self.radius = self.displacements[-1] + self.bodies[-1][self.rad_ind] # Full radius of system
+        #if self.name == "Earth Sys": print(self.radius)
+        self.data[self.rad_ind] = self.radius # Apparently not a shallow copy
+
+        if self.name == "Earth Sys":
+            self.orbital_period = self.bodies[0][self.per_ind]
+            print("new orbper", self.bodies[0][self.per_ind])
+            self.apd = 360 / self.orbital_period  # Angles per day
+            print("new apd", 360 / self.orbital_period)
 
         self.body_objs = []
         for body, displacement in zip(self.bodies, self.displacements):
@@ -126,15 +166,13 @@ class OrbSys(Body):
                              displacement=displacement)
             self.body_objs.append(to_append)
 
-        print("self.body_objs")
-        for i in self.body_objs:
-            print(i)
+        self.__next__()  # testing
 
     def __next__(self):
         super().__next__()
         for body in self.body_objs:
-            body.centre_x = self.x
-            body.centre_y = self.y
+            #body.centre_x = self.x
+            #body.centre_y = self.y
             next(body)
         self.window.update()
 
@@ -170,12 +208,15 @@ def main():
 
     zipped = [i for i in zip(names, radii, orbital_period, colours)]
 
-    #earthsyslis = [zipped.pop(3)]
-    #earthsyslis.append(("Moon", 1.625, 27, "#B7B1AA"))
-    ## Caution diff earthsys earthsyslis
-    #earthsys = OrbSys(earthsyslis, window, canvas, 0, 0, spacer=10)
-    #earthsys.pack(fill=tk.BOTH, expand=1)
-    #zipped.insert(3, earthsys)
+    earthsyslis = [zipped.pop(3)]
+    earthsyslis.append(("Moon", 1.625, 27, "#B7B1AA"))
+    # Caution diff earthsys earthsyslis
+    earthsys = OrbSys(earthsyslis, window, canvas, 0, 0, spacer=10, name="Earth Sys")
+    earthsys.pack(fill=tk.BOTH, expand=1)
+    #print(earthsys)
+    zipped.insert(3, earthsys)
+    #print("fasdfsaafs", earthsys.radius)
+    #print("fasdfsaafs", earthsys)
 
     solsys = OrbSys(zipped, window, canvas, X_MID, Y_MID, spacer=10, name="I'll be back")
     solsys.pack(fill=tk.BOTH, expand=1)
@@ -186,3 +227,4 @@ def main():
     #window.mainloop()
 
 main()
+# unexpected centre body vertical movement
