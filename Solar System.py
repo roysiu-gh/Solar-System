@@ -70,6 +70,8 @@ class Body(tk.Frame):
         """
         super().__init__()
 
+        self.typestr = "Body"
+
         self.name = name
         self.radius = radius
         self.orbital_period = orbital_period
@@ -77,8 +79,6 @@ class Body(tk.Frame):
         self.displacement = displacement
 
         self.radius /= diff  # Reduce radius if needed
-        #if self.orbital_period == None:
-        #    self.orbital_period =
         self.apd = 360 / self.orbital_period  # Angles per day
 
         # Point from which the bodies orbit
@@ -101,8 +101,6 @@ class Body(tk.Frame):
 
     def __next__(self):
         angle = self.apd * self.day
-        if self.name == "Earth Sys":
-            print("> heyeheyhey >>", self.apd)
         self.x, self.y = cart_pos(self.displacement, angle, self.centre_x, self.centre_y)
         x, y = self.x, self.y
         r = self.radius
@@ -111,11 +109,13 @@ class Body(tk.Frame):
         self.canvas.coords(self.tk_id, bounds_coords)
         self.window.update()
         self.day += 1
-        if self.name == "Earth Sys":
-            print(self.centre_x, self.centre_y)
-            print(x, y)
-            print(self.displacement, angle, self.centre_x, self.centre_y)
-            print(self.apd)
+        if self.name in ("Earth Sys", "Earth", "Moon"):
+            print("> name >>", self.name)
+            print("> heyeheyhey >>", self.apd)
+            print("> centre_x, centre_y >>", self.centre_x, self.centre_y)
+            print("> x, y >>", x, y)
+            print("> displacement, angle >>", self.displacement, angle)
+            print("> tk_id >>", self.tk_id)
             print()
 
     def __iter__(self):
@@ -129,18 +129,21 @@ class OrbSys(Body):
     def __init__(self, bodies, *args, spacer=20, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.bodies = [tuple(body) for body in bodies] # Convert nested OrbSys to tuples
+        self.typestr = "OrbSys"
+
+        self.bodies = bodies
+        self.body_tuples = [tuple(body) for body in bodies] # Convert nested OrbSys to tuples
 
         self.displacements = [0]#self.radius + spacer] # Clear (don't collide wih) centre body
 
-        for index, body in enumerate(self.bodies[1:]):  # Skip first body
+        for index, body in enumerate(self.body_tuples[1:]):  # Skip first body
             #if body[self.nam_ind] == "Earth Sys":
             #    print("> Body >>", body)
             #    print("> Bodytype >>", type(body))
             #    for i in body: print("- ", i)
             #    print("> radind >>", self.rad_ind)
 
-            self.displacements.append(self.displacements[index] + self.bodies[index][self.rad_ind])
+            self.displacements.append(self.displacements[index] + self.body_tuples[index][self.rad_ind])
 
             #if body[self.nam_ind] == "Earth Sys":
             #    print("> curdisp >>", self.displacements[index + 1])
@@ -149,21 +152,29 @@ class OrbSys(Body):
 
             self.displacements[index + 1] += spacer + body[self.rad_ind] ###
 
-        self.radius = self.displacements[-1] + self.bodies[-1][self.rad_ind] # Full radius of system
+        self.radius = self.displacements[-1] + self.body_tuples[-1][self.rad_ind] # Full radius of system
         #if self.name == "Earth Sys": print(self.radius)
         self.data[self.rad_ind] = self.radius # Apparently not a shallow copy
 
         if self.name == "Earth Sys":
-            self.orbital_period = self.bodies[0][self.per_ind]
-            print("new orbper", self.bodies[0][self.per_ind])
+            self.orbital_period = self.body_tuples[0][self.per_ind]
+            print("new orbper", self.body_tuples[0][self.per_ind])
             self.apd = 360 / self.orbital_period  # Angles per day
             print("new apd", 360 / self.orbital_period)
 
         self.body_objs = []
-        for body, displacement in zip(self.bodies, self.displacements):
-            to_append = Body(self.window, self.canvas, self.centre_x, self.centre_y, \
-                             name=body[self.nam_ind], radius=body[self.rad_ind], orbital_period=body[self.per_ind], colour=body[self.col_ind], \
-                             displacement=displacement)
+        for body, displacement in zip(self.bodies, self.displacements): #bodies document
+            if isinstance(body, tuple):
+                to_append = Body(self.window, self.canvas, self.centre_x, self.centre_y, \
+                                 name=body[self.nam_ind], radius=body[self.rad_ind], orbital_period=body[self.per_ind], colour=body[self.col_ind], \
+                                 displacement=displacement)
+            else: # Basically 'if isinstance(body, Orbsys):', but it isn't defined yet
+                print(body)
+                body.displacement = displacement
+                body.body_objs[0].displacement = displacement
+                #body.centre_x = self.x
+                #body.centre_y = self.y
+                to_append = body
             self.body_objs.append(to_append)
 
         self.__next__()  # testing
@@ -171,8 +182,9 @@ class OrbSys(Body):
     def __next__(self):
         super().__next__()
         for body in self.body_objs:
-            #body.centre_x = self.x
-            #body.centre_y = self.y
+            body.centre_x = self.x
+            body.centre_y = self.y
+            #if body.typestr == "OrbSys":
             next(body)
         self.window.update()
 
@@ -209,11 +221,11 @@ def main():
     zipped = [i for i in zip(names, radii, orbital_period, colours)]
 
     earthsyslis = [zipped.pop(3)]
-    earthsyslis.append(("Moon", 1.625, 27, "#B7B1AA"))
+    #earthsyslis.append(("Moon", 1.625, 27, "#B7B1AA")) #radius wrong?
     # Caution diff earthsys earthsyslis
     earthsys = OrbSys(earthsyslis, window, canvas, 0, 0, spacer=10, name="Earth Sys")
     earthsys.pack(fill=tk.BOTH, expand=1)
-    #print(earthsys)
+    print(earthsys.radius)
     zipped.insert(3, earthsys)
     #print("fasdfsaafs", earthsys.radius)
     #print("fasdfsaafs", earthsys)
